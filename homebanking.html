@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="es">
+    <head>
+        <title>Homebanking</title>
+    </head>
+    <body>
+        <h1>HomebagnkinG</h1>
+    </body>
+    <input type="text" id="newItem">
+    <button onclick="addItem()">Agregar</button>
+    <ul id="itemList"></ul>
+
+    <script>
+        function addItem() {
+            const newItem = document.getElementById("newItem").value;
+            if (newItem.trim() !== "") {
+                const item = JSON.parse(localStorage.getItem("items")) || [];
+                items.push(newItem);
+                document.getElementById("newItem").value = "";
+            }
+        }
+        
+    </script>
+    </html>
