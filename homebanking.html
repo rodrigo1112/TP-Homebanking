@@ -10,45 +10,142 @@
     <input type="text" id="firstName"><br>
     <label for="lastName">Apellido:</label>
     <input type="text" id="lastName"><br>
-    <label for="initialBalance">Saldo Inicial:</label>
-    <input type="number" id="initialBalance" value="1000" disabled><br>
+    <label for="email">Email:</label>
+    <input type="text" id="email"><br>
+    <p></p>
     <button onclick="createUser()">Crear Usuario</button>
-    <input type="text" id="newItem">
-    <ul id="itemList"></ul>
+   
+    <ul id="userList"></ul>
 
     <script>
-        function addItem() {
-            const newItem = document.getElementById("newItem").value;
-            if (newItem.trim() !== "") {
-                const items = JSON.parse(localStorage.getItem("items")) || [];
-                items.push(newItem);
-                localStorage.setItem("items", JSON.stringify(items));
-                displayItems();
-                document.getElementById("newItem").value = "";
+        function createUser() {
+            const firstName = document.getElementById("firstName").value;
+            const lastName = document.getElementById("lastName").value;
+            const email = document.getElementById("email").value;
+
+            if (firstName.trim() === "" || lastName.trim() === "" || email.trim() === "") {
+                alert("Por favor, complete todos los campos.");
+                return;
             }
+
+            const user = {
+                firstName,
+                lastName,
+                email,
+                CC: 1000, // Iniciar caja de ahorro en pesos con 1000
+                CA: 0,    // Iniciar cuenta corriente en pesos en 0
+                CAUSD: 0, // Iniciar cuenta corriente en dólares en 0
+                CUSD: 0,  // Iniciar caja de ahorro en dólares en 0
+                transactions: []
+            };
+
+            const users = JSON.parse(localStorage.getItem("users")) || [];
+            users.push(user);
+            localStorage.setItem("users", JSON.stringify(users));
+
+            displayUsers();
+            document.getElementById("firstName").value = "";
+            document.getElementById("lastName").value = "";
+            document.getElementById("email").value = "";
         }
-        
-        function displayItems() {
-            const itemList = document.getElementById("itemList");
-            const items = JSON.parse(localStorage.getItem("items")) || [];
-            itemList.innerHTML = "";
-            items.forEach((item) => {
+
+        function deleteUser(index) {
+            const users = JSON.parse(localStorage.getItem("users")) || [];
+            users.splice(index, 1);
+            localStorage.setItem("users", JSON.stringify(users));
+            displayUsers();
+        }
+
+        function handleTransaction(type, index) {
+            const amount = parseFloat(prompt(`Ingrese el monto a ${type === "deposit" ? "depositar" : "retirar"}:`));
+            if (isNaN(amount) || amount <= 0) {
+                alert("Ingrese un monto válido.");
+                return;
+            }
+
+            const users = JSON.parse(localStorage.getItem("users")) || [];
+            const user = users[index];
+
+            if (type === "deposit") {
+                const account = prompt("Ingrese la cuenta (CA, CUSD, CC, CAUSD):").toUpperCase();
+                if (!user.hasOwnProperty(account)) {
+                    alert("Cuenta no válida.");
+                    return;
+                }
+                user[account] += amount;
+                user.transactions.push(`Depósito de ${amount} en ${getAccountName(account)}. Saldo: ${user[account]}`);
+            } else if (type === "withdraw") {
+                const account = prompt("Ingrese la cuenta (CA, CUSD, CC, CAUSD):").toUpperCase();
+                if (!user.hasOwnProperty(account)) {
+                    alert("Cuenta no válida.");
+                    return;
+                }
+                if (account === "CA" && user[account] - amount < -1000) {
+                    alert("Saldo insuficiente en cuenta corriente en pesos.");
+                    return;
+                }
+                if (account === "CUSD" && user[account] - amount < 0) {
+                    alert("Saldo insuficiente en caja de ahorro en dólares.");
+                    return;
+                }
+                user[account] -= amount;
+                user.transactions.push(`Retiro de ${amount} de ${getAccountName(account)}. Saldo: ${user[account]}`);
+            }
+
+            localStorage.setItem("users", JSON.stringify(users));
+            displayUsers();
+        }
+
+        function getAccountName(account) {
+            const accountNames = {
+                CC: "Caja de Ahorro (ARS)",
+                CA: "Cuenta Corriente (ARS)",
+                CUSD: "Caja de Ahorro (USD)",
+                CAUSD: "Cuenta Corriente (USD)"
+            };
+            return accountNames[account] || "Cuenta Desconocida";
+        }
+
+        function displayUsers() {
+            const userList = document.getElementById("userList");
+            const users = JSON.parse(localStorage.getItem("users")) || [];
+            userList.innerHTML = "";
+
+            users.forEach((user, index) => {
                 const li = document.createElement("li");
-                li.textContent = item;
+                li.textContent = `${user.firstName} ${user.lastName} - Email: ${user.email}`;
+
+                if (user.transactions && user.transactions.length > 0) {
+                    const ul = document.createElement("ul");
+                    user.transactions.forEach(transaction => {
+                        const transactionLi = document.createElement("li");
+                        transactionLi.textContent = transaction;
+                        ul.appendChild(transactionLi);
+                    });
+                    li.appendChild(ul);
+                }
+
                 const deleteButton = document.createElement("button");
                 deleteButton.textContent = "Eliminar";
-                deleteButton.addEventListener("click", () => deleteItem(items.indexOf(item)));
+                deleteButton.addEventListener("click", () => deleteUser(index));
+                const depositButton = document.createElement("button");
+                depositButton.textContent = "Depositar";
+                depositButton.addEventListener("click", () => handleTransaction("deposit", index));
+                const withdrawButton = document.createElement("button");
+                withdrawButton.textContent = "Retirar";
+                withdrawButton.addEventListener("click", () => handleTransaction("withdraw", index));
                 li.appendChild(deleteButton);
-                itemList.appendChild(li);
+                li.appendChild(depositButton);
+                li.appendChild(withdrawButton);
+                userList.appendChild(li);
             });
         }
-        function deleteItem(index) {
-            const items = JSON.parse(localStorage.getItem("items")) || [];
-            items.splice(index, 1);
-            localStorage.setItem("items", JSON.stringify(items));
-            displayItems();
-        }
-            displayItems();
+
+        // Mostrar usuarios al cargar la página
+        displayUsers();
     </script>
 </body>
 </html>
+
+
+
